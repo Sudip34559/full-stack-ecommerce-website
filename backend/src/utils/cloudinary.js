@@ -22,8 +22,9 @@ const uploadOnCloudinery = async (localFilePath) => {
 };
 const removeOnCloudinery = async (localFilePath) => {
   try {
+    const imagePublicId = localFilePath.split("/").pop().split(".")[0];
     if (!localFilePath) return null;
-    const response = await cloudinary.uploader.destroy(localFilePath, {
+    const response = await cloudinary.uploader.destroy(imagePublicId, {
       resource_type: "auto",
     });
     return response;
