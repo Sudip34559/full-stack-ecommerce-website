@@ -2,10 +2,9 @@ import mongoose, { Schema } from "mongoose";
 
 const cartSchema = new Schema(
   {
-    user: {
+    owner: {
       type: Schema.Types.ObjectId,
       ref: "User",
-      required: true,
       unique: true,
     },
     items: [
@@ -19,11 +18,14 @@ const cartSchema = new Schema(
           type: Number,
           required: true,
         },
+        price: {
+          type: Number,
+          required: true,
+        },
       },
     ],
     totalAmount: {
       type: Number,
-      required: true,
     },
   },
   { timestamps: true }
