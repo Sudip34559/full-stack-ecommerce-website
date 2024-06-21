@@ -18,6 +18,7 @@ const UserSchema = new Schema(
       type: String,
       required: [true, "password is required"],
     },
+
     avatar: {
       type: String,
       default:
@@ -29,6 +30,12 @@ const UserSchema = new Schema(
     },
     refreshToken: {
       type: String,
+    },
+    resetPasswordToken: {
+      type: String,
+    },
+    resetPasswordTokenExpiration: {
+      type: Date,
     },
   },
   { timestamps: true }

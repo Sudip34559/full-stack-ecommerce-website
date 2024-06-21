@@ -10,6 +10,8 @@ import {
   deleteAccount,
   changeCurrentPassword,
   getCurrentUser,
+  forgotPassword,
+  resetPassword,
 } from "../controllers/user.controllers.js";
 import { upload } from "../middlewares/multer.middlewares.js";
 import { verifyJWT } from "../middlewares/auth.middlewares.js";
@@ -27,5 +29,7 @@ router
 router.route("/delete-user-avatar").delete(verifyJWT, deleteAvatar);
 router.route("/get-user").get(verifyJWT, getCurrentUser);
 router.route("/delete-user-account").delete(verifyJWT, deleteAccount);
+router.route("/forgot-password").post(forgotPassword);
+router.route("/reset-password/:resetToken").post(resetPassword);
 
 export default router;

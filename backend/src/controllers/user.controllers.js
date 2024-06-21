@@ -3,6 +3,10 @@ import { User } from "../models/user.models.js";
 import { uploadOnCloudinery, removeOnCloudinery } from "../utils/cloudinary.js";
 import jwt from "jsonwebtoken";
 import { ApiResponse } from "../utils/apiResponse.js";
+import crypto from "crypto";
+import { sendEmail } from "../services/email.service.js";
+import { ApiError } from "../utils/apiArror.js";
+import { sendOTP } from "../services/sms.service.js";
 
 const generateAccessAndRefereshTokens = async (userId) => {
   try {
@@ -21,8 +25,22 @@ const generateAccessAndRefereshTokens = async (userId) => {
     );
   }
 };
+const verifyOIP = async (req, res, next) => {
+  const { otp } = req.body;
+  const storedOTP = req.session.otp;
+  if (storedOTP && storedOTP.otp === otp && Date.now() < storedOTP.expires) {
+    // OTP matched and not expired
+    req.session.otp = null; // Clear the OTP from session after successful verification
+    return true;
+  } else {
+    // OTP not matched or expired
+    req.session.otp = null;
+    return res.status(400).json(new ApiResponse(400, "Invalid OTP"));
+  }
+};
 const signUp = asyncHandler(async (req, res, next) => {
   const { name, email, password } = req.body;
+  console.log(req.body);
   if ([name, email, password].some((field) => field?.trim() === "")) {
     throw new ApiError(400, "All fildes are required");
   }
@@ -167,7 +185,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Invalid password");
   }
   user.password = newPasswored;
-  await user.save({ validateBeforeSave: false });
+  await user.save();
 
   return res.status(200).json(new ApiResponse(200, {}, "password updated"));
 });
@@ -239,6 +257,57 @@ const deleteAccount = asyncHandler(async (req, res) => {
   await User.findByIdAndDelete(req.user?._id);
   return res.status(200).json(new ApiResponse(200, {}, "Account deleted"));
 });
+const forgotPassword = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    throw new ApiError(400, "Email is required");
+  }
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new ApiError(400, "User dose not exist with this email");
+  }
+  const resetToken = crypto.randomBytes(20).toString("hex");
+  const resetTokenExpiration = Date.now() + 10 * 60 * 1000;
+  user.resetPasswordToken = resetToken;
+  user.resetPasswordTokenExpiration = resetTokenExpiration;
+  await user.save({ validateBeforeSave: false });
+  const resetUrl = `http://localhost:3450/api/v1/users/reset-password/${resetToken}`;
+  const message = `
+   <h1>Password reset</h1>
+   <h3>You requested a password reset</h3>
+   <h3>Click this link to <a href="${resetUrl}">set a new password</a></h3>
+   `;
+  const sender = `abcd store`;
+  const recipient = email;
+  const subject = "Password reset";
+  const body = message;
+  await sendEmail(sender, recipient, subject, body);
+
+  return res.status(200).json(new ApiResponse(200, {}, "Email sent"));
+});
+const resetPassword = asyncHandler(async (req, res) => {
+  const { resetToken } = req.params;
+  const { password } = req.body;
+  if (!resetToken) {
+    throw new ApiError(400, "Reset token is required");
+  }
+  const user = await User.findOne({
+    resetPasswordToken: resetToken,
+    resetPasswordTokenExpiration: { $gt: Date.now() },
+  });
+  if (!user) {
+    throw new ApiError(400, "Invalid reset token");
+  }
+  await User.findByIdAndUpdate(user._id, {
+    $unset: {
+      resetPasswordToken: 1,
+      resetPasswordTokenExpiration: 1,
+    },
+  });
+  user.password = password;
+  await user.save();
+  return res.status(200).json(new ApiResponse(200, {}, "Password reset"));
+});
 
 export {
   signUp,
@@ -251,4 +320,6 @@ export {
   updateAvatar,
   deleteAvatar,
   deleteAccount,
+  forgotPassword,
+  resetPassword,
 };

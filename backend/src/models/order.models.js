@@ -1,7 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 const orderSchema = new Schema(
   {
-    user: {
+    owner: {
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
@@ -16,6 +16,7 @@ const orderSchema = new Schema(
         quantity: {
           type: Number,
           required: true,
+          default: 1,
         },
       },
     ],
