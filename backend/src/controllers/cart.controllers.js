@@ -15,7 +15,7 @@ const addToCart = asyncHandler(async (req, res) => {
   }
   const product = await Product.findById(productId);
   if (!product) {
-    throw new ApiError(404, "Product not found");
+    throw new ApiError(404, "Product not ");
   }
   const cart = await Cart.findOne({ owner: req.user._id });
   if (!cart) {
